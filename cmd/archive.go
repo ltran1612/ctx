@@ -7,7 +7,7 @@ import (
 
 var archiveCmd = &cobra.Command{
 	Use:   "archive <topic>",
-	Short: "Archive a topic (moves it to .ctx/archive/)",
+	Short: "Archive a topic",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		s, err := openStore()

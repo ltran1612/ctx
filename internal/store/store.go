@@ -14,6 +14,14 @@ import (
 	"github.com/user/ctx/internal/slug"
 )
 
+// isSafePathComponent rejects slugs/IDs that could escape the store directory.
+func isSafePathComponent(s string) bool {
+	if s == "" || s == "." || s == ".." {
+		return false
+	}
+	return !strings.ContainsAny(s, `/\`)
+}
+
 const (
 	ctxDir      = ".ctx"
 	activeDir   = "active"
@@ -33,24 +41,17 @@ type Topic struct {
 	File *frontmatter.File
 }
 
-// Open finds the .ctx directory starting from dir, walking up to the filesystem root.
-func Open(dir string) (*Store, error) {
-	d := dir
-	for {
-		candidate := filepath.Join(d, ctxDir)
-		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-			return &Store{Root: candidate}, nil
-		}
-		parent := filepath.Dir(d)
-		if parent == d {
-			break
-		}
-		d = parent
+// Open returns the store rooted at ~/.ctx/, creating it if it does not exist.
+func Open() (*Store, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("could not determine home directory: %w", err)
 	}
-	return nil, fmt.Errorf("no context store found in %s or any parent directory\nRun: ctx init", dir)
+	return Init(home)
 }
 
 // Init creates the .ctx directory structure in dir. Idempotent.
+// Exported so tests can create isolated stores in temp directories.
 func Init(dir string) (*Store, error) {
 	root := filepath.Join(dir, ctxDir)
 	for _, sub := range []string{activeDir, archiveDir} {
@@ -232,6 +233,9 @@ func (s *Store) Search(query string, fullText bool, limit int) ([]SearchResult, 
 }
 
 func (s *Store) loadBySlug(sub, sl string) *Topic {
+	if !isSafePathComponent(sl) {
+		return nil
+	}
 	path := filepath.Join(s.Root, sub, sl, contextFile)
 	t, err := loadTopic(sl, path)
 	if err != nil {

@@ -66,42 +66,18 @@ func TestInit_RootIsCtxSubdir(t *testing.T) {
 	}
 }
 
-// ── Open ──────────────────────────────────────────────────────────────────
+// ── Resolve path-traversal guard ─────────────────────────────────────────
 
-func TestOpen_FindsInCurrentDir(t *testing.T) {
-	dir := t.TempDir()
-	Init(dir)
-	s, err := Open(dir)
-	if err != nil {
-		t.Fatalf("Open: %v", err)
-	}
-	if s.Root == "" {
-		t.Error("expected non-empty Root")
-	}
-}
+func TestResolve_PathTraversalBlocked(t *testing.T) {
+	s := newStore(t)
+	mustCreate(t, s, "Legit Topic", nil, "")
 
-func TestOpen_WalksUpToParent(t *testing.T) {
-	dir := t.TempDir()
-	Init(dir)
-	sub := filepath.Join(dir, "a", "b", "c")
-	os.MkdirAll(sub, 0755)
-	s, err := Open(sub)
-	if err != nil {
-		t.Fatalf("Open from subdir: %v", err)
-	}
-	if !strings.HasPrefix(s.Root, dir) {
-		t.Errorf("expected root under %q, got %q", dir, s.Root)
-	}
-}
-
-func TestOpen_NotFound(t *testing.T) {
-	dir := t.TempDir()
-	_, err := Open(dir)
-	if err == nil {
-		t.Error("expected error when no .ctx dir exists")
-	}
-	if !strings.Contains(err.Error(), "ctx init") {
-		t.Errorf("error should suggest 'ctx init', got: %v", err)
+	traversals := []string{"../../etc/passwd", "../active", ".."}
+	for _, q := range traversals {
+		_, _, err := s.Resolve(q)
+		if err == nil {
+			t.Errorf("Resolve(%q): expected error, got nil", q)
+		}
 	}
 }
 

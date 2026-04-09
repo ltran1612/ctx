@@ -32,7 +32,6 @@ func init() {
 	}
 
 	rootCmd.AddCommand(
-		initCmd,
 		createCmd,
 		viewCmd,
 		editCmd,
