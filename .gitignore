@@ -1,2 +1,3 @@
 .ctx/
 ctx
+.claude/settings.local.json
