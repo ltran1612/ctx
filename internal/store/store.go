@@ -318,7 +318,13 @@ func (s *Store) Reload(t *Topic) error {
 
 // Delete removes a topic directory permanently.
 func (s *Store) Delete(t *Topic) error {
-	return os.RemoveAll(filepath.Dir(t.Path))
+	topicDir := filepath.Dir(t.Path)
+	// Guard against a manipulated Path escaping the store root.
+	rel, err := filepath.Rel(s.Root, topicDir)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return fmt.Errorf("delete: path %q is outside the store", topicDir)
+	}
+	return os.RemoveAll(topicDir)
 }
 
 func loadTopic(sl, path string) (*Topic, error) {

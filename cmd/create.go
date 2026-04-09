@@ -70,7 +70,8 @@ func openEditor(path string) error {
 		editor = "vi"
 		output.Warnf("$EDITOR not set, falling back to vi. Set with: export EDITOR=<editor>")
 	}
-	c := exec.Command(editor, path)
+	parts := strings.Fields(editor)
+	c := exec.Command(parts[0], append(parts[1:], path)...)
 	c.Stdin = os.Stdin
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
